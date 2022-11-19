@@ -2,25 +2,38 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from matplotlib import colors
+import matplotlib
+
+matplotlib.use("TkAgg")
 
 
 def timestep(forest):
-    temp = np.where(forest == 1, np.random.random(shape), tree)
-    forest = np.where((0 <= temp) & (temp < ignition_probability), fire, forest)
-    burning = np.where(forest == 2)
-    print(burning)
-    x = [burning[0][0], burning[1][0]]
-    for x in range(0, len(burning[0])):
-        coord = [burning[0][0], burning[1][0]]
-        for diff in directions:
-            if forest[coord[0]+diff[0], coord[1]+diff[1]] == tree:
-                forest[coord[0] + diff[0], coord[1] + diff[1]] = fire
-    return forest
+    """
+    Advances the forest forward one iteration
+    :param forest: grid containing trees and fire
+    :return: new grid propagated due to the rules
+    """
+    fires = np.argwhere(forest == fire)
+    random = np.random.random(shape)
+    new_forest = np.where(forest == tree, tree, 0)
+    new_growth = np.where((forest == empty) & (random < growth_probability), tree, 0)
+    ignition = np.where((forest == tree) & (random < ignition_probability), tree, 0)
+    new_forest = new_forest + new_growth + ignition
+    counter = 0
+    for x in fires:
+        for y in directions:
+            try:
+                if forest[x[0] + y[0]][x[1] + y[1]] == tree:
+                    new_forest[x[0] + y[0]][x[1] + y[1]] = fire
+                    counter += 1
+            except IndexError:
+                pass
+    return new_forest
 
 
 directions = [(-1, -1), (-1, 0), (1, 0), (1, 1)]
-ignition_probability = 0.01
-growth_probability = 0.1
+ignition_probability = 0.001
+growth_probability = 0.01
 shape = (100, 100)
 colour_list = colors.ListedColormap(['Black', 'Green', 'Red'])
 grid = np.zeros(shape)
@@ -28,13 +41,21 @@ empty, tree, fire = 0, 1, 2
 
 tempsetup = np.where(grid == empty, np.random.random(shape), empty)
 grid = np.where((0 <= tempsetup) & (tempsetup < growth_probability), tree, grid)
-grid = timestep(grid)
+
+for p in range(0, 100):
+    grid = timestep(grid)
+
+fig, ax = plt.subplots()
+image = ax.imshow(grid, cmap=colour_list)
 
 
-plt.imshow(grid, cmap=colour_list)
+def animate(frame):
+    image.set_data(animate.grid)
+    animate.grid = timestep(animate.grid)
+
+
+animate.grid = grid
+interval = 100
+animation = matplotlib.animation.FuncAnimation(fig, animate, interval=interval, frames=200)
+
 plt.show()
-print(grid)
-
-
-#plt.figure()
-
