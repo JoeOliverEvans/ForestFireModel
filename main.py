@@ -19,19 +19,17 @@ def timestep(forest):
     new_growth = np.where((forest == empty) & (random < growth_probability), tree, 0)
     ignition = np.where((forest == tree) & (random < ignition_probability), tree, 0)
     new_forest = new_forest + new_growth + ignition
-    counter = 0
     for x in fires:
         for y in directions:
             try:
                 if forest[x[0] + y[0]][x[1] + y[1]] == tree:
                     new_forest[x[0] + y[0]][x[1] + y[1]] = fire
-                    counter += 1
             except IndexError:
                 pass
     return new_forest
 
 
-directions = [(-1, -1), (-1, 0), (1, 0), (1, 1)]
+directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]
 ignition_probability = 0.001
 growth_probability = 0.01
 shape = (100, 100)
@@ -39,8 +37,6 @@ colour_list = colors.ListedColormap(['Black', 'Green', 'Red'])
 grid = np.zeros(shape)
 empty, tree, fire = 0, 1, 2
 
-tempsetup = np.where(grid == empty, np.random.random(shape), empty)
-grid = np.where((0 <= tempsetup) & (tempsetup < growth_probability), tree, grid)
 
 for p in range(0, 100):
     grid = timestep(grid)
@@ -55,7 +51,7 @@ def animate(frame):
 
 
 animate.grid = grid
-interval = 100
+interval = 50
 animation = matplotlib.animation.FuncAnimation(fig, animate, interval=interval, frames=200)
 
 plt.show()
