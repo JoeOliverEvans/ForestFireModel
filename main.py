@@ -30,7 +30,7 @@ def timestep(forest):
 directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]
 ignition_probability = 0.001
 growth_probability = 0.01
-shape = (100, 100)
+shape = (10, 10)
 empty, tree, fire = 0, 1, 2
 
 
@@ -85,4 +85,53 @@ def study_numbers(n=10**3):
     plt.show()
 
 
-study_numbers()
+def Hoshen_Kopelman(grid):
+    """
+    Python version of algoithm detailed in psuedocode on https://en.wikipedia.org/wiki/Hoshen%E2%80%93Kopelman_algorithm
+    :param grid:
+    :return:
+    """
+    def union(a, b):
+        labels[find(a)] = find(b)
+
+    def find(p):
+        q = p
+        while labels[q] != q:
+            q = labels[q]
+        while labels[p] != p:
+            r = labels[p]
+            labels[p] = q
+            p = r
+        return q
+
+    largest_label = 0
+    label = np.zeros(shape)
+    labels = np.arange(0, shape[0]*shape[1])
+    for xkop in range(0, shape[0]):
+        for ykop in range(0, shape[1]):
+            if grid[xkop, ykop] == tree:
+                left = grid[xkop - 1, ykop]
+                above = grid[xkop, ykop - 1]
+                if left != tree and above != tree:
+                    largest_label += 1
+                    label[xkop, ykop] = largest_label
+                elif left == tree and above != tree:
+                    label[xkop, ykop] = find(left)
+                elif left != tree and above == tree:
+                    label[xkop, ykop] = find(above)
+                else:
+                    union(left, above)
+                    label[xkop, ykop] = find(left)
+    return label
+
+
+def Hoshen_Kopelman2():
+
+
+#study_numbers()
+grid = np.zeros(shape)
+for x in range(0, 50):
+    grid = timestep(grid)
+
+print(grid)
+print(Hoshen_Kopelman2(grid))
