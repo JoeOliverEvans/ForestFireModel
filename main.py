@@ -30,7 +30,7 @@ def timestep(forest):
 directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]
 ignition_probability = 0.001
 growth_probability = 0.01
-shape = (20, 20)
+shape = (100, 100)
 empty, tree, fire = 0, 1, 2
 
 
@@ -55,7 +55,7 @@ def visual():
     plt.show()
 
 
-def study_numbers(n=10**3):
+def study_numbers(n=10 ** 3):
     """
     Analyse the number of trees fires and empty squares over time
     :param: number of iterations
@@ -87,100 +87,36 @@ def study_numbers(n=10**3):
 
 def Hoshen_Kopelman(grid):
     """
-    Python version of algoithm detailed in psuedocode on https://en.wikipedia.org/wiki/Hoshen%E2%80%93Kopelman_algorithm
-    :param grid:
-    :return:
+    Python version of algorithm written in pseudocode on https://en.wikipedia.org/wiki/Hoshen%E2%80%93Kopelman_algorithm
+    Had to make significant changes to check for clusters that were adjacent with different labels
+    :param grid: Forest containing empty, trees and fires
+    :return:numbered grid of clusters
     """
-    def union(a, b):
-        labels[find(a)] = find(b)
-
-    def find(p):
-        q = p
-        while labels[q] != q:
-            q = labels[q]
-        while labels[p] != p:
-            r = labels[p]
-            labels[p] = q
-            p = r
-        return q
-
-    largest_label = 0
-    label = np.zeros(shape, dtype=int)
-    labels = np.arange(0, (shape[0]*shape[1])/2)
-    for xkop in range(0, shape[0]):
-        for ykop in range(0, shape[1]):
-            if grid[xkop, ykop] == tree:
-                if ykop-1<0:
-                    left = 0
-                else:
-                    left = grid[xkop, ykop-1]
-                if xkop-1<0:
-                    above=0
-                else:
-                    above = grid[xkop-1, ykop]
-                if left != tree and above != tree:
-                    largest_label = largest_label + 1
-                    label[xkop, ykop] = largest_label
-                elif left == tree and above != tree:
-                    label[xkop, ykop] = find(left)
-                elif left != tree and above == tree:
-                    label[xkop, ykop] = find(above)
-                else:
-                    union(left, above)
-                    label[xkop, ykop] = find(left)
-    '''for (int i=0; i < m; i++)
-        for (int j=0; j < n; j++)
-            if (matrix[i][j]) {
-            int x = uf_find(matrix[i][j]);
-            if (new_labels[x] == 0) {
-            new_labels[0]++;
-            new_labels[x] = new_labels[0];
-            }
-            matrix[i][j] = new_labels[x];
-            }
-
-    int
-    total_clusters = new_labels[0];
-
-    free(new_labels);'''
-    new_labels = np.arange(0,max(labels))
-    for xkop in range(0, shape[0]):
-        for ykop in range(0, shape[1]):
-            if grid[xkop, ykop] != 0:
-                x = find(label[xkop,ykop])
-                if new_labels[x] == 0:
-                    new_labels[0] += 1
-                    new_labels[x] = new_labels[0]
-                label[xkop,ykop] = new_labels[x]
-    return label
-
-
-def Hoshen_Kopelman2(grid):
     labeled = np.zeros(shape, dtype=int)
     largest_label = int(0)
     equivalent = []
     for xkop in range(0, shape[0]):
         for ykop in range(0, shape[1]):
             if grid[xkop, ykop] == 1:
-                if ykop-1<0:
+                if ykop - 1 < 0:
                     left = 0
                 else:
-                    left = grid[xkop, ykop-1]
-                if xkop-1<0:
-                    above=0
+                    left = grid[xkop, ykop - 1]
+                if xkop - 1 < 0:
+                    above = 0
                 else:
-                    above = grid[xkop-1, ykop]
+                    above = grid[xkop - 1, ykop]
                 if left != tree and above != tree:
                     largest_label += 1
                     labeled[xkop, ykop] = largest_label
                 if left == tree and above != tree:
-                    labeled[xkop, ykop] = labeled[xkop, ykop-1]
+                    labeled[xkop, ykop] = labeled[xkop, ykop - 1]
                 if left != tree and above == tree:
-                    labeled[xkop, ykop] = labeled[xkop-1, ykop]
+                    labeled[xkop, ykop] = labeled[xkop - 1, ykop]
                 if left == tree and above == tree:
-                    labeled[xkop, ykop] = labeled[xkop, ykop-1]
-                    if labeled[xkop-1, ykop] != labeled[xkop, ykop-1]:
-                        join = [labeled[xkop-1, ykop], labeled[xkop, ykop-1]]
+                    labeled[xkop, ykop] = labeled[xkop, ykop - 1]
+                    if labeled[xkop - 1, ykop] != labeled[xkop, ykop - 1]:
+                        join = [labeled[xkop - 1, ykop], labeled[xkop, ykop - 1]]
                         new = True
                         join.sort()
                         for n, h in enumerate(equivalent):
@@ -195,31 +131,49 @@ def Hoshen_Kopelman2(grid):
                                 new = False
                         if new:
                             equivalent.append(join)
-    print(equivalent)
     for pair in equivalent:
         pair.sort()
         for r in range(1, len(pair)):
             labeled = np.where(labeled == pair[r], pair[0], labeled)
-    print(labeled)
-    for p in range(1, largest_label):
+    p = 1
+    while p < largest_label:
         if p not in labeled and p < np.max(labeled):
-            sub = np.abs(np.min(np.where(labeled > p, ,0)-p))
-            labeled = np.where(labeled > p, labeled-sub, labeled)
-            print(labeled)
+            labeled = np.where(labeled > p, labeled - 1, labeled)
+        else:
+            p += 1
     return labeled
 
 
+# study_numbers()
 
-#study_numbers()
-grid = np.zeros(shape)
-for x in range(0, 50):
-    grid = timestep(grid)
+def testing_Hoshen():
+    """
+    Algorithm to test Hoshen Kopelman implementation
+    :return: None
+    """
+    grid = np.zeros(shape)
+    for x in range(0, 50):
+        grid = timestep(grid)
 
-print(grid)
-hosh = Hoshen_Kopelman2(grid)
-print(hosh)
-new = np.where(hosh != 0, 1, 0)
-print(np.max(np.where(grid==1, 1, 0)-new))
+    hosh = Hoshen_Kopelman(grid)
+    new = np.where(hosh != 0, 1, 0)
+    ma = np.max(hosh)
+    fail = False
+    for x in range(0, ma + 1):
+        if x not in hosh:
+            fail = True
+
+    if not fail:
+        print('success')
+
+    else:
+        print('fail')
+    return None
 
 
+testing_Hoshen()
 
+def investigating_clusters():
+    grid = np.zeros(shape)
+    for x in range(0, 50):
+        grid = timestep(grid)
