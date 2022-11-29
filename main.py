@@ -30,7 +30,7 @@ def timestep(forest):
 directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]
 ignition_probability = 0.001
 growth_probability = 0.01
-shape = (50, 50)
+shape = (10, 10)
 empty, tree, fire = 0, 1, 2
 
 
@@ -123,19 +123,47 @@ def Hoshen_Kopelman(grid):
                             h.sort()
                             if join[0] in h and join[1] in h:
                                 new = False
+                                break
                             elif join[0] in h and join[1] not in h:
                                 equivalent[n].append(join[1])
                                 new = False
+                                break
                             elif join[1] in h and join[0] not in h:
                                 equivalent[n].append(join[0])
                                 new = False
+                                break
                         if new:
                             equivalent.append(join)
+
+    print(labeled)
+    print(equivalent)
+    done = False
+    while not done:
+        change = False
+        for n in range(0, len(equivalent)):
+            for m in range(0, len(equivalent)):
+                if n != m:
+                    for x in equivalent[n]:
+                        if x in equivalent[m]:
+                            equivalent[n] = [*set([*equivalent[n], *equivalent[m]])]
+                            equivalent.pop(m)
+                            change = True
+                        if change:
+                            break
+                if change:
+                    break
+            if change:
+                break
+        if not change:
+            done = True
+
+    print(equivalent)
     for pair in equivalent:
         pair.sort()
         for r in range(1, len(pair)):
             labeled = np.where(labeled == pair[r], pair[0], labeled)
     p = 1
+    print(labeled)
     while p < largest_label:
         if p not in labeled and p < np.max(labeled):
             labeled = np.where(labeled > p, labeled - 1, labeled)
@@ -151,11 +179,22 @@ def testing_Hoshen():
     Algorithm to test Hoshen Kopelman implementation
     :return: None
     """
-    grid = np.zeros(shape)
-    for x in range(0, 50):
-        grid = timestep(grid)
+    grid = np.array([[0, 1, 0, 0, 0, 0, 1, 1, 1, 0],
+                     [0, 0, 0, 0, 1, 1, 0, 1, 0, 1],
+                     [0, 0, 1, 0, 0, 1, 1, 1, 1, 1],
+                     [0, 1, 1, 1, 1, 0, 1, 0, 0, 0],
+                     [0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
+                     [0, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+                     [0, 1, 0, 1, 0, 0, 1, 0, 1, 1],
+                     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                     [0, 0, 0, 0, 0, 1, 0, 1, 1, 1],
+                     [0, 0, 0, 0, 0, 0, 0, 0, 1, 0]])
+    print(grid)
+    '''for x in range(0, 50):
+        grid = timestep(grid)'''
 
     hosh = Hoshen_Kopelman(grid)
+    print(hosh)
     new = np.where(hosh != 0, 1, 0)
     ma = np.max(hosh)
     fail = False
@@ -173,15 +212,15 @@ def testing_Hoshen():
 
 def avg_cluster_size(labelled_grid):
     runningtot = 0
-    for x in range(1, np.max(labelled_grid)+1):
+    for x in range(1, np.max(labelled_grid) + 1):
         runningtot += np.count_nonzero(labelled_grid == x)
-    avg = runningtot/np.max(labelled_grid)
+    avg = runningtot / np.max(labelled_grid)
     return avg
 
 
 def investigating_clusters():
     grid = np.zeros(shape)
-    for x in range(0, 5*10**2):
+    for x in range(0, 5 * 10 ** 2):
         grid = timestep(grid)
     labelled_grid = Hoshen_Kopelman(grid)
     number_of_clusters = np.max(labelled_grid)
@@ -190,4 +229,5 @@ def investigating_clusters():
     print(average_size_of_cluster)
 
 
-investigating_clusters()
+testing_Hoshen()
+# investigating_clusters()
