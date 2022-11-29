@@ -30,7 +30,7 @@ def timestep(forest):
 directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]
 ignition_probability = 0.001
 growth_probability = 0.01
-shape = (50, 50)
+shape = (20, 20)
 empty, tree, fire = 0, 1, 2
 
 
@@ -182,8 +182,12 @@ def Hoshen_Kopelman2(grid):
                     if labeled[xkop-1, ykop] != labeled[xkop, ykop-1]:
                         join = [labeled[xkop-1, ykop], labeled[xkop, ykop-1]]
                         new = True
+                        join.sort()
                         for n, h in enumerate(equivalent):
-                            if join[0] in h and join[1] not in h:
+                            h.sort()
+                            if join[0] in h and join[1] in h:
+                                new = False
+                            elif join[0] in h and join[1] not in h:
                                 equivalent[n].append(join[1])
                                 new = False
                             elif join[1] in h and join[0] not in h:
@@ -197,17 +201,11 @@ def Hoshen_Kopelman2(grid):
         for r in range(1, len(pair)):
             labeled = np.where(labeled == pair[r], pair[0], labeled)
     print(labeled)
-    for p in range(0, largest_label):
-        if p not in labeled:
-            np.where(labeled>p, labeled-1, labeled)
-    '''labeled[xkop, ykop] = labeled[xkop-1, ykop]
-    cond = True
-    p = 0
-    while cond:
-        p += 1
-        if labeled[xkop, ykop-1] != 0:
-            labeled[xkop, ykop-p] = labeled[xkop, ykop]
-        cond = False'''
+    for p in range(1, largest_label):
+        if p not in labeled and p < np.max(labeled):
+            sub = np.abs(np.min(np.where(labeled > p, ,0)-p))
+            labeled = np.where(labeled > p, labeled-sub, labeled)
+            print(labeled)
     return labeled
 
 
