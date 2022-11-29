@@ -30,7 +30,7 @@ def timestep(forest):
 directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]
 ignition_probability = 0.001
 growth_probability = 0.01
-shape = (100, 100)
+shape = (50, 50)
 empty, tree, fire = 0, 1, 2
 
 
@@ -171,9 +171,23 @@ def testing_Hoshen():
     return None
 
 
-testing_Hoshen()
+def avg_cluster_size(labelled_grid):
+    runningtot = 0
+    for x in range(1, np.max(labelled_grid)+1):
+        runningtot += np.count_nonzero(labelled_grid == x)
+    avg = runningtot/np.max(labelled_grid)
+    return avg
+
 
 def investigating_clusters():
     grid = np.zeros(shape)
-    for x in range(0, 50):
+    for x in range(0, 5*10**2):
         grid = timestep(grid)
+    labelled_grid = Hoshen_Kopelman(grid)
+    number_of_clusters = np.max(labelled_grid)
+    average_size_of_cluster = avg_cluster_size(labelled_grid)
+    print(number_of_clusters)
+    print(average_size_of_cluster)
+
+
+investigating_clusters()
