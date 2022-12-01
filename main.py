@@ -30,7 +30,7 @@ def timestep(forest):
 directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]
 ignition_probability = 0.001
 growth_probability = 0.01
-shape = (20, 20)
+shape = (100, 100)
 empty, tree, fire = 0, 1, 2
 
 
@@ -117,7 +117,6 @@ def Hoshen_Kopelman(grid):
                     labeled[xkop, ykop] = labeled[xkop, ykop - 1]
                     if labeled[xkop - 1, ykop] != labeled[xkop, ykop - 1]:
                         join = [labeled[xkop - 1, ykop], labeled[xkop, ykop - 1]]
-                        new = True
                         join.sort()
                         if join not in equivalent:
                             equivalent.append(join)
@@ -130,7 +129,7 @@ def Hoshen_Kopelman(grid):
                 if n != m:
                     for x in equivalent[n]:
                         if x in equivalent[m]:
-                            equivalent[n] = [*set([*equivalent[n], *equivalent[m]])]
+                            equivalent[n] = [*{*equivalent[n], *equivalent[m]}]
                             equivalent.pop(m)
                             change = True
                         if change:
@@ -155,11 +154,10 @@ def Hoshen_Kopelman(grid):
     return labeled
 
 
-# study_numbers()
-
 def testing_Hoshen():
     """
-    Algorithm to test Hoshen Kopelman implementation
+    Algorithm to test Hoshen Kopelman implementation, success and fail messages are regarding all labels being in
+    order not the accuracy of labelling the clusters.
     :return: None
     """
     grid = np.zeros(shape)
@@ -185,6 +183,11 @@ def testing_Hoshen():
 
 
 def avg_cluster_size(labelled_grid):
+    """
+    Returns the average cluster size of groups of trees
+    :param labelled_grid: forest with Kopelman labels
+    :return: avg: average size of tree clusters
+    """
     runningtot = 0
     for x in range(1, np.max(labelled_grid) + 1):
         runningtot += np.count_nonzero(labelled_grid == x)
@@ -192,16 +195,32 @@ def avg_cluster_size(labelled_grid):
     return avg
 
 
-def investigating_clusters():
+def investigating_clusters(iterations=5*10**2, repeats=20):
+    """
+    Records number of clusters
+    :param iterations:
+    :param repeats:
+    :return:
+    """
+    number_of_clusters = []
+    average_size_of_cluster = []
     grid = np.zeros(shape)
-    for x in range(0, 5 * 10 ** 3):
-        grid = timestep(grid)
-    labelled_grid = Hoshen_Kopelman(grid)
-    number_of_clusters = np.max(labelled_grid)
-    average_size_of_cluster = avg_cluster_size(labelled_grid)
+    for y in range(0, repeats):
+        for x in range(0, iterations):
+            grid = timestep(grid)
+        labelled_grid = Hoshen_Kopelman(grid)
+        number_of_clusters.append(np.max(labelled_grid))
+        average_size_of_cluster.append(avg_cluster_size(labelled_grid))
+    xvalues = np.linspace(iterations, iterations*repeats, repeats, dtype=int)
+    plt.errorbar(xvalues, number_of_clusters)
+    plt.show()
+    plt.errorbar(xvalues, average_size_of_cluster)
+    plt.show()
     print(number_of_clusters)
     print(average_size_of_cluster)
 
 
-testing_Hoshen()
-#investigating_clusters()
+#study_numbers()
+#testing_Hoshen()
+investigating_clusters()
+
