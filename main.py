@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 from matplotlib import colors
 import matplotlib
+import scipy.optimize
 
 
 def timestep(forest):
@@ -30,7 +31,7 @@ def timestep(forest):
 directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]
 ignition_probability = 0.001
 growth_probability = 0.01
-shape = (100, 100)
+shape = (50, 50)
 empty, tree, fire = 0, 1, 2
 
 
@@ -77,8 +78,8 @@ def study_numbers(n=10 ** 3):
 
     ax1.errorbar(xvalues, empties, label='empties', fmt='.', color='k')
     ax1.errorbar(xvalues, trees, label='trees', fmt='.', color='green')
-    ax1.errorbar(xvalues, fires, label='fires', fmt='.', color='red')
     ax1.set_xlabel('number of iterations')
+    ax1.set_ylabel('number of trees and empties')
 
     plt.legend()
     fig.tight_layout()
@@ -120,7 +121,6 @@ def Hoshen_Kopelman(grid):
                         join.sort()
                         if join not in equivalent:
                             equivalent.append(join)
-
     done = False
     while not done:
         change = False
@@ -195,32 +195,36 @@ def avg_cluster_size(labelled_grid):
     return avg
 
 
-def investigating_clusters(iterations=5*10**2, repeats=20):
+def powerlaw(x, k, a):
+    return k * x ** a
+
+
+def investigating_clusters(iterations=3*10**3, discard=100):
     """
     Records number of clusters
+    :param discard:
     :param iterations:
-    :param repeats:
     :return:
     """
-    number_of_clusters = []
-    average_size_of_cluster = []
+    clusters = []
     grid = np.zeros(shape)
-    for y in range(0, repeats):
-        for x in range(0, iterations):
-            grid = timestep(grid)
+    for x in range(0, discard):
+        grid = timestep(grid)
+    for x in range(0, iterations-discard):
+        grid = timestep(grid)
         labelled_grid = Hoshen_Kopelman(grid)
-        number_of_clusters.append(np.max(labelled_grid))
-        average_size_of_cluster.append(avg_cluster_size(labelled_grid))
-    xvalues = np.linspace(iterations, iterations*repeats, repeats, dtype=int)
-    plt.errorbar(xvalues, number_of_clusters)
+        for y in range(1, np.max(labelled_grid)+1):
+            clusters.append(int(np.count_nonzero(labelled_grid == y)))
+    y = plt.hist(clusters, bins=np.arange(2, np.max(clusters) + 1, 1))
+    bins = y[1][:-1]
+    yvals = y[0]
+    popt, pcov = scipy.optimize.curve_fit(powerlaw, xdata=bins, ydata=yvals)
+    plt.plot(bins, powerlaw(bins, *popt))
+    plt.xlim(0, 50)
     plt.show()
-    plt.errorbar(xvalues, average_size_of_cluster)
-    plt.show()
-    print(number_of_clusters)
-    print(average_size_of_cluster)
 
 
 #study_numbers()
 #testing_Hoshen()
-investigating_clusters()
-
+investigating_clusters(3000)
+# TODO histogram 3000 iterations, buildup of cluster size
