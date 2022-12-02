@@ -4,6 +4,7 @@ from matplotlib import animation
 from matplotlib import colors
 import matplotlib
 import scipy.optimize
+import time
 
 
 def timestep(forest):
@@ -12,13 +13,14 @@ def timestep(forest):
     :param forest: grid containing trees and fire
     :return: new grid propagated due to the rules
     """
-    fires = np.argwhere(forest == fire)
-    random = np.random.random(shape)
+    fires = np.argwhere(forest == fire)  # Find the location of fires
+    random = np.random.random(shape)  # Generate random values for the forest to be used for new growth etc.
     new_forest = np.where(forest == tree, tree, 0)
-    new_growth = np.where((forest == empty) & (random < growth_probability), tree, 0)
-    ignition = np.where((forest == tree) & (random < ignition_probability), 1, 0)
-    new_forest = new_forest + new_growth + ignition
-    for x in fires:
+    new_growth = np.where((forest == empty) & (random < growth_probability), tree, 0)   # Grows new trees
+    ignition = np.where((forest == tree) & (random < ignition_probability), 1, 0)  # Fire value is 2 however we will
+    # add these to trees, so it will become 2 when added
+    new_forest = new_forest + new_growth + ignition  # Constructs the new forest
+    for x in fires:     # Propagates the fire from the previous forest
         for y in directions:
             try:
                 if forest[x[0] + y[0]][x[1] + y[1]] == tree:
@@ -28,31 +30,23 @@ def timestep(forest):
     return new_forest
 
 
-directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]
-ignition_probability = 0.001
-growth_probability = 0.01
-shape = (50, 50)
-empty, tree, fire = 0, 1, 2
-
-
 def visual():
-    matplotlib.use("TkAgg")
+    matplotlib.use("TkAgg")     # Necessary for my IDE to display animation
     colour_list = colors.ListedColormap(['Black', 'Green', 'Red'])
-    grid = np.zeros(shape)
-    for p in range(0, 50):
-        grid = timestep(grid)
+    grid = np.zeros(shape)      # Makes an empty forest
+    grid[0, 0] = fire       # Necessary for the colormap to assign values to 0, 1 and 2 as they are based on the initial
+    # maximum value doesn't impact the forest significantly
 
     fig, ax = plt.subplots()
     image = ax.imshow(grid, cmap=colour_list)
 
-    def animate(frame):
+    def animate(frame):     # Generates the next image based on the forest
         image.set_data(animate.grid)
         animate.grid = timestep(animate.grid)
 
     animate.grid = grid
-    interval = 50
+    interval = 50       # Time between frames in ms
     amin = matplotlib.animation.FuncAnimation(fig, animate, interval=interval, frames=200)
-
     plt.show()
 
 
@@ -93,13 +87,12 @@ def Hoshen_Kopelman(grid):
     :param grid: Forest containing empty, trees and fires
     :return:numbered grid of clusters
     """
-    labeled = np.zeros(shape, dtype=int)
-    largest_label = int(0)
-    equivalent = []
-    for xkop in range(0, shape[0]):
+    labeled = np.zeros(shape, dtype=int)    # Creates the forest
+    largest_label = int(0)      # Variable to track largest label
+    for xkop in range(0, shape[0]):     # Iterate through the grid
         for ykop in range(0, shape[1]):
-            if grid[xkop, ykop] == 1:
-                if ykop - 1 < 0:
+            if grid[xkop, ykop] == tree:
+                if ykop - 1 < 0:    # Check if left or above is in or out of the array
                     left = 0
                 else:
                     left = grid[xkop, ykop - 1]
@@ -107,46 +100,20 @@ def Hoshen_Kopelman(grid):
                     above = 0
                 else:
                     above = grid[xkop - 1, ykop]
-                if left != tree and above != tree:
+                if left != tree and above != tree:      # Start a new label as there are no bordering trees
                     largest_label += 1
                     labeled[xkop, ykop] = largest_label
-                if left == tree and above != tree:
+                elif left == tree and above != tree:    # Assign label from the left
                     labeled[xkop, ykop] = labeled[xkop, ykop - 1]
-                if left != tree and above == tree:
+                elif left != tree and above == tree:    # Assign label from the right
                     labeled[xkop, ykop] = labeled[xkop - 1, ykop]
-                if left == tree and above == tree:
-                    labeled[xkop, ykop] = labeled[xkop, ykop - 1]
-                    if labeled[xkop - 1, ykop] != labeled[xkop, ykop - 1]:
-                        join = [labeled[xkop - 1, ykop], labeled[xkop, ykop - 1]]
-                        join.sort()
-                        if join not in equivalent:
-                            equivalent.append(join)
-    done = False
-    while not done:
-        change = False
-        for n in range(0, len(equivalent)):
-            for m in range(0, len(equivalent)):
-                if n != m:
-                    for x in equivalent[n]:
-                        if x in equivalent[m]:
-                            equivalent[n] = [*{*equivalent[n], *equivalent[m]}]
-                            equivalent.pop(m)
-                            change = True
-                        if change:
-                            break
-                if change:
-                    break
-            if change:
-                break
-        if not change:
-            done = True
-
-    for pair in equivalent:
-        pair.sort()
-        for r in range(1, len(pair)):
-            labeled = np.where(labeled == pair[r], pair[0], labeled)
+                else:       # Assign label from the top and change all labels to the left to above label
+                    labeled[xkop, ykop] = labeled[xkop - 1, ykop]
+                    left_label = labeled[xkop, ykop - 1]
+                    above_label = labeled[xkop - 1, ykop]
+                    labeled = np.where(labeled == left_label, above_label, labeled)
     p = 1
-    while p < largest_label:
+    while p < largest_label:    # Corrects for gaps in labelling
         if p not in labeled and p < np.max(labeled):
             labeled = np.where(labeled > p, labeled - 1, labeled)
         else:
@@ -160,10 +127,19 @@ def testing_Hoshen():
     order not the accuracy of labelling the clusters.
     :return: None
     """
-    grid = np.zeros(shape)
+    # grid = np.zeros(shape)
+    shape = (10, 10)
+    grid = np.array([[0, 1, 0, 0, 0, 0, 1, 1, 1, 0],
+                     [0, 0, 0, 0, 1, 1, 0, 1, 0, 1],
+                     [0, 0, 1, 0, 0, 1, 1, 1, 1, 1],
+                     [0, 1, 1, 1, 1, 0, 1, 0, 0, 0],
+                     [0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
+                     [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                     [0, 1, 0, 1, 0, 0, 1, 0, 1, 1],
+                     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                     [0, 0, 0, 0, 0, 1, 0, 1, 1, 1],
+                     [0, 0, 0, 0, 0, 0, 0, 0, 1, 0]])
 
-    for x in range(0, 50):
-        grid = timestep(grid)
     print(grid)
     hosh = Hoshen_Kopelman(grid)
     print(hosh)
@@ -199,32 +175,47 @@ def powerlaw(x, k, a):
     return k * x ** a
 
 
-def investigating_clusters(iterations=3*10**3, discard=100):
+def investigating_clusters(iterations=3 * 10 ** 3, discard=100):
     """
     Records number of clusters
     :param discard:
     :param iterations:
     :return:
     """
+    t_0 = time.time()
     clusters = []
     grid = np.zeros(shape)
     for x in range(0, discard):
         grid = timestep(grid)
-    for x in range(0, iterations-discard):
+    for x in range(0, iterations - discard):
+        if time.time() - t_0 > 5:
+            print(str(x + discard) + ' / ' + str(iterations))
+            t_0 = time.time()
         grid = timestep(grid)
         labelled_grid = Hoshen_Kopelman(grid)
-        for y in range(1, np.max(labelled_grid)+1):
+        for y in range(1, np.max(labelled_grid) + 1):
             clusters.append(int(np.count_nonzero(labelled_grid == y)))
-    y = plt.hist(clusters, bins=np.arange(2, np.max(clusters) + 1, 1))
+    y = plt.hist(clusters, bins=np.arange(1, np.max(clusters), 1), label='Cluster size')
     bins = y[1][:-1]
     yvals = y[0]
     popt, pcov = scipy.optimize.curve_fit(powerlaw, xdata=bins, ydata=yvals)
-    plt.plot(bins, powerlaw(bins, *popt))
-    plt.xlim(0, 50)
+    plt.plot(bins, powerlaw(bins, *popt), label=fr'kx^a : k = {popt[0]:.2f}, a = {popt[1]:.2f}')
+    plt.xlim(1, 30)
+    #plt.ylim(0,100000)
+    plt.title('Frequency of cluster size fitted with a power law')
+    plt.ylabel('Frequency')
+    plt.xlabel('Cluster size')
+    plt.legend()
     plt.show()
 
 
-#study_numbers()
-#testing_Hoshen()
-investigating_clusters(3000)
-# TODO histogram 3000 iterations, buildup of cluster size
+directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]
+ignition_probability = 0.001
+growth_probability = 0.01
+shape = (200, 200)
+empty, tree, fire = 0, 1, 2
+
+# visual()
+# study_numbers()
+# testing_Hoshen()
+investigating_clusters(200)
