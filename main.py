@@ -134,12 +134,26 @@ def testing_Kopelman(randomgrid=None):
                          [0, 0, 0, 0, 0, 1, 0, 1, 1, 1],
                          [0, 0, 0, 0, 0, 0, 0, 0, 1, 0]])
     else:
-        grid = np.random.randint(0, 1, size=(10, 10), dtype=int)
+        grid = np.random.randint(0, 2, size=(10, 10), dtype=int)
     # TODO make this look good
-
+    shape = (10, 10)
     print(grid)
     hosh = Hoshen_Kopelman(grid, shape)
     print(hosh)
+    plt.subplot(1, 2, 1)
+    plt.title('Input Forest')
+    plt.axis('off')
+    image1 = plt.imshow(grid, cmap='seismic')
+    for (j, i), label in np.ndenumerate(grid):
+        plt.text(i, j, label, ha='center', va='center', color='white')
+    plt.subplot(1, 2, 2)
+    plt.title('Labelled Clusters')
+    plt.axis('off')
+    image2 = plt.imshow(hosh, cmap='seismic')
+    for (j, i), label in np.ndenumerate(hosh):
+        plt.text(i, j, label, ha='center', va='center', color='white')
+    plt.tight_layout()
+    plt.show()
 
 
 def powerlaw(x, k, a):
@@ -265,6 +279,6 @@ time_sample_iterations = 10
 
 # visual()
 # study_numbers()
-# testing_Kopelman()
-investigating_clusters(200)
+testing_Kopelman(randomgrid='yes')
+#investigating_clusters(200)
 # Gigafunction()
