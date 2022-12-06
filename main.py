@@ -1,5 +1,4 @@
 import datetime
-
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
@@ -113,28 +112,31 @@ def Hoshen_Kopelman(grid, shape):
                     labeled[xkop, ykop] = labeled[xkop - 1, ykop]
                     left_label = labeled[xkop, ykop - 1]
                     above_label = labeled[xkop - 1, ykop]
-                    labeled = np.where(labeled == left_label, above_label, labeled)     # Simple but inefficient
+                    labeled = np.where(labeled == left_label, above_label, labeled)  # Simple but inefficient
                     # merging of labels
     return labeled
 
 
-def testing_Kopelman():
+def testing_Kopelman(randomgrid=None):
     """
     Algorithm to test Hoshen Kopelman implementation, using a 10x10 grid that contains "U" shapes, harder to label
     :return: None
     """
+    if randomgrid is None:
+        grid = np.array([[0, 1, 0, 0, 0, 0, 1, 1, 1, 0],
+                         [0, 0, 0, 0, 1, 1, 0, 1, 0, 1],
+                         [0, 0, 1, 0, 0, 1, 1, 1, 1, 1],
+                         [0, 1, 1, 1, 1, 0, 1, 0, 0, 0],
+                         [0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
+                         [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                         [0, 1, 0, 1, 0, 0, 1, 0, 1, 1],
+                         [0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                         [0, 0, 0, 0, 0, 1, 0, 1, 1, 1],
+                         [0, 0, 0, 0, 0, 0, 0, 0, 1, 0]])
+    else:
+        grid = np.random.randint(0, 1, size=(10, 10), dtype=int)
     # TODO make this look good
-    shape = (10, 10)
-    grid = np.array([[0, 1, 0, 0, 0, 0, 1, 1, 1, 0],
-                     [0, 0, 0, 0, 1, 1, 0, 1, 0, 1],
-                     [0, 0, 1, 0, 0, 1, 1, 1, 1, 1],
-                     [0, 1, 1, 1, 1, 0, 1, 0, 0, 0],
-                     [0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
-                     [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-                     [0, 1, 0, 1, 0, 0, 1, 0, 1, 1],
-                     [0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                     [0, 0, 0, 0, 0, 1, 0, 1, 1, 1],
-                     [0, 0, 0, 0, 0, 0, 0, 0, 1, 0]])
+
     print(grid)
     hosh = Hoshen_Kopelman(grid, shape)
     print(hosh)
@@ -144,7 +146,7 @@ def powerlaw(x, k, a):
     return k * x ** a
 
 
-def investigating_clusters(iterations=3 * 10 ** 3, discard=100):
+def investigating_clusters(iterations=2 * 10 ** 3, discard=100):
     """
     Records frequency of different sized clusters
     :param discard:
@@ -206,7 +208,6 @@ def investigation(shape, iterations, discard, animate, test):
         grid = timestep(grid)
         empties.append(np.count_nonzero(grid == empty))
         trees.append((np.count_nonzero(grid == tree)))
-        fires.append((np.count_nonzero(grid == fire)))
         if (time.time() - t_0) > 5:
             print(str(x) + ' / ' + str(iterations))
             t_0 = time.time()
@@ -258,12 +259,12 @@ def Gigafunction(shapes=None, iterations=2000, discard=100, animate=False, test=
 directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]
 ignition_probability = 0.001
 growth_probability = 0.01
-shape = (50, 50)
+shape = (200, 200)
 empty, tree, fire = 0, 1, 2
 time_sample_iterations = 10
 
 # visual()
 # study_numbers()
-testing_Kopelman()
-# investigating_clusters(2000)
+# testing_Kopelman()
+investigating_clusters(200)
 # Gigafunction()
