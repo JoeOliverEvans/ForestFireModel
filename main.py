@@ -7,6 +7,9 @@ import matplotlib
 import scipy.optimize
 import time
 
+#TODO vary f and p values
+#TODO 3000 timesteps
+
 
 def timestep(forest):
     """
@@ -46,7 +49,7 @@ def visual():
         animate.grid = timestep(animate.grid)
 
     animate.grid = grid
-    interval = 50  # Time between frames in ms
+    interval = 40  # Time between frames in ms
     amin = matplotlib.animation.FuncAnimation(fig, animate, interval=interval, frames=200)
     plt.show()
 
@@ -117,12 +120,12 @@ def Hoshen_Kopelman(grid, shape):
     return labeled
 
 
-def testing_Kopelman(randomgrid=None):
+def testing_Kopelman(randomgrid=False):
     """
     Algorithm to test Hoshen Kopelman implementation, using a 10x10 grid that contains "U" shapes, harder to label
     :return: None
     """
-    if randomgrid is None:
+    if randomgrid is False:
         grid = np.array([[0, 1, 0, 0, 0, 0, 1, 1, 1, 0],
                          [0, 0, 0, 0, 1, 1, 0, 1, 0, 1],
                          [0, 0, 1, 0, 0, 1, 1, 1, 1, 1],
@@ -205,6 +208,27 @@ def investigating_clusters(iterations=2 * 10 ** 3, discard=100):
     plt.show()
 
 
+def circumference(labelled_grid, target):
+    """
+    Returns the size of the cluster with number target
+    :param labelled_grid: Grid resulting from Kopelman
+    :param target: Number of cluster to find circumference of
+    :return:
+    """
+    coords = np.argwhere(labelled_grid == target)
+    counter = 0
+    for coord in coords:
+        minicounter = 0
+        for direction in directions:
+            if coord[0] + direction[0] < 0 or coord[0] + direction[0] >= shape[0] or coord[1] + direction[1] < 0 or coord[1] + direction[1] >= shape[1]:
+                minicounter += 1
+            else:
+                if labelled_grid[coord[0] + direction[0], coord[1] + direction[1]] != target:
+                    minicounter += 1
+        counter += minicounter
+    return counter
+
+
 def investigation(shape, iterations, discard, animate, test):
     if test:
         testing_Kopelman()
@@ -213,12 +237,13 @@ def investigation(shape, iterations, discard, animate, test):
     trees = [np.count_nonzero(grid == tree)]
     fires = [np.count_nonzero(grid == fire)]
     clusters = []
+    circumferences = []
     t_0 = time.time()
     first = True
     sample = True
     s_0 = 0
     print(f'Time estimate will be given after discarded ({discard}) iterations')
-    for x in range(0, iterations):
+    for x in range(1, iterations):
         grid = timestep(grid)
         empties.append(np.count_nonzero(grid == empty))
         trees.append((np.count_nonzero(grid == tree)))
@@ -234,12 +259,14 @@ def investigation(shape, iterations, discard, animate, test):
                     time_to_completion = round(((time.time() - s_0) * (iterations - discard) / time_sample_iterations))
                     print('Estimated time to completion : ' + str(datetime.timedelta(seconds=time_to_completion)))
                     first = False
-            labelled_grid = Hoshen_Kopelman(grid)
+            labelled_grid = Hoshen_Kopelman(grid, shape)
             for y in range(1, np.max(labelled_grid) + 1):
                 if y in labelled_grid:  # Avoid appending 0 values for missing labels
+                    circumferences.append(circumference(labelled_grid, y))
                     clusters.append(int(np.count_nonzero(labelled_grid == y)))
-
     xvalues = np.arange(0, iterations)
+    print(len(xvalues))
+    print(len(np.array(empties)))
     plt.errorbar(xvalues, empties, label='empties', fmt='.', color='k')
     plt.errorbar(xvalues, trees, label='trees', fmt='.', color='green')
     plt.xlabel('Number of iterations')
@@ -250,12 +277,24 @@ def investigation(shape, iterations, discard, animate, test):
     bins = np.arange(1, np.max(clusters) + 1, 1)
     y = plt.hist(clusters, bins=bins, label='Cluster size')
     yvals = y[0]
-    popt, pcov = scipy.optimize.curve_fit(powerlaw, xdata=bins[:-1], ydata=yvals)
+    popt, pcov = scipy.optimize.curve_fit(powerlaw, xdata=bins[:-1], ydata=yvals, absolute_sigma=True)
     plt.plot(bins, powerlaw(bins, *popt), label=fr'$kx^a$ : $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}')
     plt.xlim(1, 30)
     plt.title(f'Frequency of cluster size fitted with a power law for {shape}')
     plt.ylabel('Frequency')
     plt.xlabel('Clusters')
+    plt.legend()
+    plt.show()
+
+    bincirc = np.arange(1, np.max(circumferences) + 1, 2)
+    y = plt.hist(circumferences, bins=bincirc, label='Circumference')
+    yvals = y[0]
+    popt, pcov = scipy.optimize.curve_fit(powerlaw, xdata=bincirc[3:], ydata=yvals[3:], absolute_sigma=True)
+    plt.plot(bincirc[1:], powerlaw(bincirc[1:], *popt), label=fr'$kx^a$ : $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}')
+    plt.xlim(1, 30)
+    plt.title(f'Frequency of circumference fitted with a power law for {shape}')
+    plt.ylabel('Frequency')
+    plt.xlabel('Circumference')
     plt.legend()
     plt.show()
     return
@@ -271,14 +310,15 @@ def Gigafunction(shapes=None, iterations=2000, discard=100, animate=False, test=
 
 
 directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]
-ignition_probability = 0.001
+ignition_probability = 0.01
 growth_probability = 0.01
-shape = (200, 200)
+shape = (50, 50)
 empty, tree, fire = 0, 1, 2
 time_sample_iterations = 10
 
 # visual()
 # study_numbers()
-testing_Kopelman(randomgrid='yes')
+#testing_Kopelman(randomgrid='yes')
 #investigating_clusters(200)
+investigation((50, 50), 1000, 100, False, False)
 # Gigafunction()
