@@ -63,36 +63,6 @@ def visual(shape):
     plt.show()
 
 
-'''def study_numbers(shape, n=10 ** 3):
-    """
-    Analyse the number of trees fires and empty squares over time
-    :param: number of iterations
-    :return: Nothing
-    """
-    grid = np.zeros(shape)
-    empties = [np.count_nonzero(grid == empty)]
-    trees = [np.count_nonzero(grid == tree)]
-    fires = [np.count_nonzero(grid == fire)]
-    for x in range(1, n):
-        grid = timestep(grid)
-        empties.append(np.count_nonzero(grid == empty))
-        trees.append((np.count_nonzero(grid == tree)))
-        fires.append((np.count_nonzero(grid == fire)))
-
-    xvalues = np.arange(0, n)
-
-    fig, ax1 = plt.subplots()
-
-    ax1.errorbar(xvalues, empties, label='empties', fmt='.', color='k')
-    ax1.errorbar(xvalues, trees, label='trees', fmt='.', color='green')
-    ax1.set_xlabel('number of iterations')
-    ax1.set_ylabel('number of trees and empties')
-
-    plt.legend()
-    fig.tight_layout()
-    plt.show()'''
-
-
 def Hoshen_Kopelman(grid, shape):
     """
     Python version of algorithm written in pseudocode on https://en.wikipedia.org/wiki/Hoshen%E2%80%93Kopelman_algorithm
@@ -125,30 +95,18 @@ def Hoshen_Kopelman(grid, shape):
                     left_label = labeled[xkop, ykop - 1]
                     above_label = labeled[xkop - 1, ykop]
                     labeled = np.where(labeled == left_label, above_label, labeled)  # Simple but inefficient
-                    # merging of labels
+                    # merging of labels, used as union find was not working as intended
     return labeled
 
 
-def testing_Kopelman(randomgrid=False):
+def testing_Kopelman():
     """
     Algorithm to test Hoshen Kopelman implementation, using a 10x10 grid that contains "U" shapes, harder to label
     Alternatively it can also test a random 50% 1 50% 0 grid
     :param randomgrid: Boolean to
     :return: None
     """
-    if randomgrid is False:
-        grid = np.array([[0, 1, 0, 0, 0, 0, 1, 1, 1, 0],
-                         [0, 0, 0, 0, 1, 1, 0, 1, 0, 1],
-                         [0, 0, 1, 0, 0, 1, 1, 1, 1, 1],
-                         [0, 1, 1, 1, 1, 0, 1, 0, 0, 0],
-                         [0, 0, 0, 0, 1, 1, 1, 0, 0, 0],
-                         [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-                         [0, 1, 0, 1, 0, 0, 1, 0, 1, 1],
-                         [0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                         [0, 0, 0, 0, 0, 1, 0, 1, 1, 1],
-                         [0, 0, 0, 0, 0, 0, 0, 0, 1, 0]])
-    else:
-        grid = np.random.randint(0, 2, size=(10, 10), dtype=int)
+    grid = np.random.randint(0, 2, size=(10, 10), dtype=int)
     shape = (10, 10)
     hosh = Hoshen_Kopelman(grid, shape)
     plt.subplot(1, 2, 1)
@@ -164,7 +122,7 @@ def testing_Kopelman(randomgrid=False):
     for (j, i), label in np.ndenumerate(hosh):
         plt.text(i, j, label, ha='center', va='center', color='white')
     plt.tight_layout()
-    plt.savefig('figures/testingkopelman', dpi=240)
+    plt.savefig('figures/Kopelman_test', dpi=240)
     plt.show()
 
 
@@ -172,7 +130,7 @@ def powerlaw(x, k, a):
     return k * x ** a
 
 
-def circumference(labelled_grid, target, shape):
+def perimeter(labelled_grid, target, shape):
     """
     Returns the size of the cluster with number target
     :param shape: shape of forest
@@ -193,6 +151,28 @@ def circumference(labelled_grid, target, shape):
                     minicounter += 1
         counter += minicounter
     return counter
+
+
+def perimeter_test():
+    perimeter_test_grid = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+                                    [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+                                    [0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+                                    [0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+                                    [0, 0, 0, 1, 1, 0, 0, 0, 0, 0],
+                                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+    plt.subplot(1, 2, 1)
+    plt.title(f'Cluster perimeter : {perimeter(Hoshen_Kopelman(perimeter_test_grid, (10, 10)), 1, (10, 10))}')
+    plt.axis('off')
+    image1 = plt.imshow(perimeter_test_grid, cmap='seismic')
+    for (j, i), label in np.ndenumerate(perimeter_test_grid):
+        plt.text(i, j, label, ha='center', va='center', color='white')
+    plt.tight_layout()
+    plt.savefig('figures/perimeter_test', dpi=240)
+    plt.show()
 
 
 def investigation(shape, iterations, discard, animate, test):
@@ -228,7 +208,7 @@ def investigation(shape, iterations, discard, animate, test):
             labelled_grid = Hoshen_Kopelman(grid, shape)
             for y in range(1, np.max(labelled_grid) + 1):
                 if y in labelled_grid:  # Avoid appending 0 values for missing labels
-                    circumferences.append(circumference(labelled_grid, y, shape))
+                    circumferences.append(perimeter(labelled_grid, y, shape))
                     clusters.append(int(np.count_nonzero(labelled_grid == y)))
     xvalues = np.arange(0, iterations)
     print(len(xvalues))
@@ -247,12 +227,12 @@ def investigation(shape, iterations, discard, animate, test):
 
     manualchi = np.sum((yvals[:] - powerlaw(y[1][:-1], *popt)) ** 2 / powerlaw(y[1][:-1], *popt))
     print(manualchi)
-    print(scipy.stats.chi2.pdf(manualchi, len(bins)-1))
-    #print(scipy.stats.chisquare(yvals, powerlaw(y[1][:-1], *popt)))
+    print(scipy.stats.distributions.chi2.sf(manualchi, len(bins) - 1))
+    # print(scipy.stats.chisquare(yvals, powerlaw(y[1][:-1], *popt), ddof= len(bins)-1))
 
     plt.plot(bins, powerlaw(bins, *popt), label=fr'$kx^a$ : $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}')
     plt.xlim(1, 30)
-    plt.title(f'Frequency of cluster size fitted with a power law for {shape}')
+    plt.title(f'Frequency of cluster size for {shape} forest, {iterations} iterations')
     plt.ylabel('Frequency')
     plt.xlabel('Clusters')
     plt.legend()
@@ -263,7 +243,7 @@ def investigation(shape, iterations, discard, animate, test):
     yvals = y[0]
     popt, pcov = scipy.optimize.curve_fit(powerlaw, xdata=bincirc[3:-1], ydata=yvals[3:], absolute_sigma=True)
 
-    #print(scipy.stats.chisquare(yvals[:10], powerlaw(bincirc[:10], *popt)))
+    # print(scipy.stats.chisquare(yvals[:10], powerlaw(bincirc[:10], *popt)))
 
     plt.plot(bincirc[1:], powerlaw(bincirc[1:], *popt), label=fr'$kx^a$ : $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}')
     plt.xlim(1, 30)
@@ -278,22 +258,35 @@ def investigation(shape, iterations, discard, animate, test):
 def Gigafunction(shapes=None, iterations=3000, discard=100, animate=False, test=False):
     if shapes is None:
         shapes = [(50, 50), (200, 200)]
-    if animate:
-        visual()
     for shape in shapes:
         investigation(shape, iterations, discard, animate, test)
+    if animate:
+        visual(shape=(200, 200))
 
 
-directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]
-ignition_probability = 0.001
+directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]  # Used to index neighboring cells in the forest
+ignition_probability = 0.0001
 growth_probability = 0.01
-#shape = (50, 50)
-empty, tree, fire = 0, 1, 2
-time_sample_iterations = 10
+empty, tree, fire = 0, 1, 2  # Assigning values to represent empty, tree and fire
+time_sample_iterations = 10  # Used for the estimated completion time
 
 # visual()
 # study_numbers()
-# testing_Kopelman(randomgrid='yes')
+#testing_Kopelman()
 # investigating_clusters(200)
-#investigation((50, 50), 500, 100, False, False)
-Gigafunction(iterations=200)
+# investigation((50, 50), 500, 100, False, False)
+Gigafunction(shapes=[(50, 50)], iterations=2000, animate=False)
+
+# perimeter_test()
+'''L = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+              [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+
+print(perimeter(Hoshen_Kopelman(L, (10, 10)), 1, (10, 10)))'''
