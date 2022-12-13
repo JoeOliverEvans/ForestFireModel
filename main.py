@@ -94,8 +94,8 @@ def Hoshen_Kopelman(grid, shape):
                     labeled[xkop, ykop] = labeled[xkop - 1, ykop]
                     left_label = labeled[xkop, ykop - 1]
                     above_label = labeled[xkop - 1, ykop]
-                    labeled = np.where(labeled == left_label, above_label, labeled)  # Simple but inefficient
-                    # merging of labels, used as union find was not working as intended
+                    labeled = np.where(labeled == left_label, above_label, labeled)  # Simple but inefficient merging
+                    # of labels, used as union find failed to work as intended, not a problem for this investigation
     return labeled
 
 
@@ -103,7 +103,6 @@ def testing_Kopelman():
     """
     Algorithm to test Hoshen Kopelman implementation, using a 10x10 grid that contains "U" shapes, harder to label
     Alternatively it can also test a random 50% 1 50% 0 grid
-    :param randomgrid: Boolean to
     :return: None
     """
     grid = np.random.randint(0, 2, size=(10, 10), dtype=int)
@@ -127,7 +126,7 @@ def testing_Kopelman():
 
 
 def powerlaw(x, k, a):
-    return k * x ** a
+    return k * x ** -a
 
 
 def perimeter(labelled_grid, target, shape):
@@ -175,6 +174,10 @@ def perimeter_test():
     plt.show()
 
 
+def calculate_radius(grid, target, shape):
+    return
+
+
 def investigation(shape, iterations, discard, animate, test):
     if test:
         testing_Kopelman()
@@ -182,8 +185,7 @@ def investigation(shape, iterations, discard, animate, test):
     empties = [np.count_nonzero(grid == empty)]
     trees = [np.count_nonzero(grid == tree)]
     fires = [np.count_nonzero(grid == fire)]
-    clusters = []
-    circumferences = []
+    clusters, circumferences, radii = [], [], []
     t_0 = time.time()
     first = True
     sample = True
@@ -210,6 +212,7 @@ def investigation(shape, iterations, discard, animate, test):
                 if y in labelled_grid:  # Avoid appending 0 values for missing labels
                     circumferences.append(perimeter(labelled_grid, y, shape))
                     clusters.append(int(np.count_nonzero(labelled_grid == y)))
+                    # radii.append(calculateradius(labelled_grid, y, shape))
     xvalues = np.arange(0, iterations)
     print(len(xvalues))
     print(len(np.array(empties)))
@@ -225,32 +228,54 @@ def investigation(shape, iterations, discard, animate, test):
     yvals = y[0]
     popt, pcov = scipy.optimize.curve_fit(powerlaw, xdata=bins[:-1], ydata=yvals, absolute_sigma=True)
 
-    manualchi = np.sum((yvals[:] - powerlaw(y[1][:-1], *popt)) ** 2 / powerlaw(y[1][:-1], *popt))
+    cutoff5 = 0
+    for x in y[1][:-1]:
+        if powerlaw(x, *popt) < 5:
+            cutoff5 = int(x - 1)
+            break
+
+    manualchi = np.sum((yvals[:cutoff5] - powerlaw(y[1][:cutoff5], *popt)) ** 2 / powerlaw(y[1][:cutoff5], *popt))
     print(manualchi)
-    print(scipy.stats.distributions.chi2.sf(manualchi, len(bins) - 1))
-    # print(scipy.stats.chisquare(yvals, powerlaw(y[1][:-1], *popt), ddof= len(bins)-1))
+    print(scipy.stats.distributions.chi2.sf(manualchi, cutoff5 - 1))
+    # print(scipy.stats.chisquare(yvals[:cutoff5], powerlaw(y[1][:cutoff5], *popt)))
 
     plt.plot(bins, powerlaw(bins, *popt), label=fr'$kx^a$ : $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}')
     plt.xlim(1, 30)
     plt.title(f'Frequency of cluster size for {shape} forest, {iterations} iterations')
     plt.ylabel('Frequency')
-    plt.xlabel('Clusters')
+    plt.xlabel('Cluster size')
     plt.legend()
     plt.show()
 
-    bincirc = np.arange(1, np.max(circumferences) + 1, 2)
+    plt.title(f'Frequency of cluster size for {shape} forest, {iterations} iterations')
+    plt.errorbar(y[1][:-1], yvals, fmt='.k', label='Cluster Size Frequency')
+    plt.plot(bins, powerlaw(bins, *popt), label=fr'$kx^a$ : $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}')
+    plt.ylabel('Frequency')
+    plt.xlabel('Cluster size')
+    plt.loglog()
+    plt.show()
+
+    bincirc = np.arange(4, np.max(circumferences) + 2, 2)
     y = plt.hist(circumferences, bins=bincirc, label='Circumference')
     yvals = y[0]
-    popt, pcov = scipy.optimize.curve_fit(powerlaw, xdata=bincirc[3:-1], ydata=yvals[3:], absolute_sigma=True)
+    popt, pcov = scipy.optimize.curve_fit(powerlaw, xdata=bincirc[:-1], ydata=yvals[:], absolute_sigma=True)
 
     # print(scipy.stats.chisquare(yvals[:10], powerlaw(bincirc[:10], *popt)))
 
-    plt.plot(bincirc[1:], powerlaw(bincirc[1:], *popt), label=fr'$kx^a$ : $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}')
+    plt.plot(bincirc, powerlaw(bincirc, *popt), label=fr'$kx^a$ : $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}')
     plt.xlim(1, 30)
     plt.title(f'Frequency of circumference fitted with a power law for {shape}')
     plt.ylabel('Frequency')
-    plt.xlabel('Circumference')
+    plt.xlabel('Perimeter')
     plt.legend()
+    plt.show()
+
+    plt.title(f'Frequency of circumference fitted with a power law for {shape}')
+    plt.errorbar(y[1][:-1], yvals, fmt='.k', label='Cluster Size Frequency')
+    plt.plot(bincirc, powerlaw(bincirc, *popt), label=fr'$kx^a$ : $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}')
+    plt.ylabel('Frequency')
+    plt.xlabel('Perimeter')
+    plt.loglog()
     plt.show()
     return
 
@@ -265,18 +290,18 @@ def Gigafunction(shapes=None, iterations=3000, discard=100, animate=False, test=
 
 
 directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]  # Used to index neighboring cells in the forest
-ignition_probability = 0.0001
-growth_probability = 0.01
+ignition_probability = 0.00001
+growth_probability = 0.001
 empty, tree, fire = 0, 1, 2  # Assigning values to represent empty, tree and fire
 time_sample_iterations = 10  # Used for the estimated completion time
 
 # visual()
 # study_numbers()
-#testing_Kopelman()
+# testing_Kopelman()
 # investigating_clusters(200)
 # investigation((50, 50), 500, 100, False, False)
-Gigafunction(shapes=[(50, 50)], iterations=2000, animate=False)
-
+Gigafunction(shapes=[(50, 50)], iterations=3000, animate=False)
+# visual((100, 100))
 # perimeter_test()
 '''L = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
