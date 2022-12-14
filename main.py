@@ -27,7 +27,7 @@ def timestep(forest, shape):
     :return: new grid propagated due to the rules
     """
     fires = np.argwhere(forest == fire)  # Find the location of fires
-    random = np.random.random(shape)  # Generate random values for the forest to be used for new growth etc.
+    random = rng.random(shape)  # Generate random values in shape of forest for new growth etc.
     new_forest = np.where(forest == tree, tree, 0)
     new_growth = np.where((forest == empty) & (random < growth_probability), tree, 0)  # Grows new trees
     ignition = np.where((forest == tree) & (random < ignition_probability), 1, 0)  # Fire value is 2 however we will
@@ -263,7 +263,7 @@ def Gigafunction(shapes=None, iterations=3000, discard=100, animate=False, test=
     if animate:
         visual(shape=(200, 200))
 
-
+rng = np.random.default_rng()
 directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]  # Used to index neighboring cells in the forest
 ignition_probability = 0.0001
 growth_probability = 0.01
@@ -275,18 +275,9 @@ time_sample_iterations = 10  # Used for the estimated completion time
 #testing_Kopelman()
 # investigating_clusters(200)
 # investigation((50, 50), 500, 100, False, False)
-Gigafunction(shapes=[(50, 50)], iterations=2000, animate=False)
-
+#Gigafunction(shapes=[(50, 50)], iterations=2000, animate=False)
+print(scipy.stats.distributions.chi2.sf(5, 1))
+#visual(shape=(200,200))
+#print(rng.random(10)[0])
 # perimeter_test()
-'''L = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-              [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-              [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-              [0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
-              [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
-print(perimeter(Hoshen_Kopelman(L, (10, 10)), 1, (10, 10)))'''
