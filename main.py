@@ -159,7 +159,7 @@ def perimeter_test():
                                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                                     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
-    plt.subplot(1, 2, 1)    # Output in subplot to match font size etc. of other plots in report
+    plt.subplot(1, 2, 1)  # Output in subplot to match font size etc. of other plots in report
     plt.title(f'Cluster perimeter : {perimeter(Hoshen_Kopelman(perimeter_test_grid, (10, 10)), 1, (10, 10))}')
     plt.axis('off')
     image1 = plt.imshow(perimeter_test_grid, cmap='seismic')
@@ -172,6 +172,10 @@ def perimeter_test():
 
 def powerlaw(x, k, a):
     return k * x ** -a
+
+
+def powerfixed(x, k):
+    return k * x ** (-2)
 
 
 def investigation(shape, iterations, discard, animate, test):
@@ -210,11 +214,10 @@ def investigation(shape, iterations, discard, animate, test):
                     clusters.append(int(np.count_nonzero(labelled_grid == y)))
                     # radii.append(calculateradius(labelled_grid, y, shape))
     xvalues = np.arange(0, iterations)
-    print(len(xvalues))
-    print(len(np.array(empties)))
-    plt.title(f'Number of trees in the forest over {iterations} iterations')
-    plt.errorbar(xvalues, empties, label='empties', fmt='.', color='k')
-    plt.errorbar(xvalues, trees, label='trees', fmt='.', color='green')
+    rhobar = np.mean(trees[discard:]) / (shape[0]) ** 2
+    plt.title(f'Number of trees in the forest over {iterations} iterations ' + r'$\rho ̄$' + f'$={rhobar:.3f}$')
+    plt.errorbar(xvalues, empties, label='empties', fmt='.', markersize=4, color='k')
+    plt.errorbar(xvalues, trees, label='trees', fmt='.', markersize=4, color='green')
     plt.xlabel('Number of iterations')
     plt.ylabel('Number of trees and empties')
     plt.legend()
@@ -223,26 +226,35 @@ def investigation(shape, iterations, discard, animate, test):
 
     datacolor = 'midnightblue'
     fitcolor = 'firebrick'
-    bins = np.arange(2, np.max(clusters) + 1, 1)
+    bins = np.arange(1, np.max(clusters) + 1, 1, dtype=np.float64)
     cluster_hist_data = plt.hist(clusters, bins=bins, label='Cluster size', color=datacolor)
-    print(cluster_hist_data[1])
     cluster_yvals = cluster_hist_data[0]
-    popt, pcov = optimize.curve_fit(powerlaw, xdata=cluster_hist_data[1][1:-1], ydata=cluster_yvals[1:], absolute_sigma=True)
-
+    popt, pcov = optimize.curve_fit(powerlaw, xdata=cluster_hist_data[1][1:-1], ydata=cluster_yvals[1:],
+                                    absolute_sigma=True)    # omitting cluster size 1
+    topt, tcov = optimize.curve_fit(powerfixed, xdata=cluster_hist_data[1][1:-1], ydata=cluster_yvals[1:],
+                                    absolute_sigma=True)    # fixed value of a=2
     cutoff5 = None
     for x in cluster_hist_data[1][:-1]:
         if powerlaw(x, *popt) < 5:
             cutoff5 = int(x - 1)
             break
     if cutoff5 is None:
-        cutoff5 = int(len(bins)-2)
+        cutoff5 = int(len(bins) - 2)
 
-    manualchi = np.sum((cluster_yvals[:cutoff5] - powerlaw(cluster_hist_data[1][:cutoff5], *popt)) ** 2 / powerlaw(cluster_hist_data[1][:cutoff5], *popt))
+    manualchi = np.sum((cluster_yvals[:cutoff5] - powerfixed(cluster_hist_data[1][:cutoff5], *topt)) ** 2 / powerfixed(
+        cluster_hist_data[1][:cutoff5], *topt))
+    manualchi1 = np.sum((cluster_yvals[:cutoff5] - powerlaw(cluster_hist_data[1][:cutoff5], *popt)) ** 2 / powerlaw(
+        cluster_hist_data[1][:cutoff5], *popt))
     print(manualchi)
+    print(manualchi1)
     print(stats.distributions.chi2.cdf(manualchi, cutoff5 - 1))
     # print(scipy.stats.chisquare(yvals[:cutoff5], powerlaw(y[1][:cutoff5], *popt)))
 
-    plt.plot(cluster_hist_data[1][:-1], powerlaw(cluster_hist_data[1][:-1], *popt), label=r'$kx^{-a}$' + f': $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}', color=fitcolor)
+    print(topt)
+    plt.plot(cluster_hist_data[1][:-1], powerlaw(cluster_hist_data[1][:-1], *popt),
+             label=r'$kx^{-a}$' + f': $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}', color=fitcolor)
+    plt.plot(cluster_hist_data[1][:-1], powerfixed(cluster_hist_data[1][:-1], *topt),
+             label=r'$kx^{-2}$' + f': $k = ${topt[0]:.2f}', color='lightpink')
     plt.xlim(1, 30)
     plt.title(f'Frequency of cluster size for {shape} forest, {iterations} iterations')
     plt.ylabel('Frequency')
@@ -252,8 +264,11 @@ def investigation(shape, iterations, discard, animate, test):
     plt.show()
 
     plt.title(f'Frequency of cluster size for {shape} forest, {iterations} iterations')
-    plt.errorbar(cluster_hist_data[1][:-1], cluster_yvals, fmt='.k', label='Cluster Size Frequency', color=datacolor)
-    plt.plot(bins, powerlaw(bins, *popt), label=r'$kx^{-a}$' + f': $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}', color=fitcolor)
+    plt.errorbar(cluster_hist_data[1][:-1], cluster_yvals, fmt='.', label='Cluster Size Frequency', color=datacolor)
+    plt.plot(bins, powerlaw(bins, *popt), label=r'$kx^{-a}$' + f': $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}',
+             color=fitcolor)
+    plt.plot(cluster_hist_data[1][:-1], powerfixed(cluster_hist_data[1][:-1], *topt),
+             label=r'$kx^{-2}$' + f': $k = ${topt[0]:.2f}', color='lightpink')
     plt.ylabel('Frequency')
     plt.xlabel('Cluster size')
     plt.loglog()
@@ -261,24 +276,26 @@ def investigation(shape, iterations, discard, animate, test):
     plt.savefig(f'figures/{shape}logarea.png', dpi=240)
     plt.show()
 
-    bincirc = np.arange(6, np.max(perimeters) + 2, 2)
+    bincirc = np.arange(4, np.max(perimeters) + 2, 2, dtype=np.float64)
     perimeter_hist_data = plt.hist(perimeters, bins=bincirc, label='Circumference', color=datacolor)
     perimeter_yvals = perimeter_hist_data[0]
-    popt, pcov = optimize.curve_fit(powerlaw, xdata=perimeter_hist_data[1][:-1], ydata=perimeter_yvals[:], absolute_sigma=True, p0=[20744859, 2.5])
+    popt, pcov = optimize.curve_fit(powerlaw, xdata=perimeter_hist_data[1][1:-1], ydata=perimeter_yvals[1:],
+                                    absolute_sigma=True)
 
-
-    plt.plot(perimeter_hist_data[1][:-1], powerlaw(perimeter_hist_data[1][:-1], *popt), label=r'$kx^{-a}$' + f': $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}', color=fitcolor)
+    plt.plot(perimeter_hist_data[1][:-1], powerlaw(perimeter_hist_data[1][:-1], *popt),
+             label=r'$kx^{-a}$' + f': $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}', color=fitcolor)
     plt.xlim(1, 30)
-    plt.title(f'Frequency of circumference fitted with a power law for {shape}')
+    plt.title(f'Frequency of perimeter fitted with a power law for {shape}')
     plt.ylabel('Frequency')
     plt.xlabel('Perimeter')
     plt.legend()
     plt.savefig(f'figures/{shape}circ.png', dpi=240)
     plt.show()
 
-    plt.title(f'Frequency of circumference fitted with a power law for {shape}')
-    plt.errorbar(perimeter_hist_data[1][:-1], perimeter_yvals, fmt='.k', label='Cluster Size Frequency', color=datacolor)
-    plt.plot(bincirc, powerlaw(bincirc, *popt), label=r'$kx^{-a}$' + f': $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}', color=fitcolor)
+    plt.title(f'Frequency of perimeter fitted with a power law for {shape}')
+    plt.errorbar(perimeter_hist_data[1][:-1], perimeter_yvals, fmt='.', label='Cluster Size Frequency', color=datacolor)
+    plt.plot(bincirc, powerlaw(bincirc, *popt), label=r'$kx^{-a}$' + f': $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}',
+             color=fitcolor)
     plt.ylabel('Frequency')
     plt.xlabel('Perimeter')
     plt.loglog()
@@ -294,12 +311,12 @@ def Gigafunction(shapes=None, iterations=3000, discard=100, animate=False, test=
     for shape in shapes:
         investigation(shape, iterations, discard, animate, test)
     if animate:
-        visual(shape=(200, 200))
+        visual(shape=(100, 100))
 
 
 directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]  # Used to index neighboring cells in the forest
-ignition_probability = 0.00001
-growth_probability = 0.1
+growth_probability = 0.01
+ignition_probability = growth_probability * 1 / 70
 empty, tree, fire = 0, 1, 2  # Assigning values to represent empty, tree and fire
 time_sample_iterations = 10  # Used for the estimated completion time
 
@@ -307,7 +324,7 @@ time_sample_iterations = 10  # Used for the estimated completion time
 # study_numbers()
 # testing_Kopelman()
 # investigating_clusters(200)
-#investigation((50, 50), 500, 100, False, False)
-#Gigafunction(shapes=[(50, 50)], iterations=1500, animate=False, discard=600)
+# investigation((50, 50), 500, 100, False, False)
+Gigafunction(shapes=[(50, 50)], iterations=10000, animate=False, discard=9000)
 # visual((100, 100))
-#perimeter_test()
+# perimeter_test()
