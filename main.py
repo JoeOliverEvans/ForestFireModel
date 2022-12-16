@@ -241,16 +241,14 @@ def investigation(shape, iterations, discard, animate, test):
     if cutoff5 is None:
         cutoff5 = int(len(bins) - 2)
 
-    manualchi = np.sum((cluster_yvals[:cutoff5] - powerfixed(cluster_hist_data[1][:cutoff5], *topt)) ** 2 / powerfixed(
-        cluster_hist_data[1][:cutoff5], *topt))
-    manualchi1 = np.sum((cluster_yvals[:cutoff5] - powerlaw(cluster_hist_data[1][:cutoff5], *popt)) ** 2 / powerlaw(
+    manualchi = np.sum((cluster_yvals[:cutoff5] - powerlaw(cluster_hist_data[1][:cutoff5], *popt)) ** 2 / powerlaw(
         cluster_hist_data[1][:cutoff5], *popt))
-    print(manualchi)
-    print(manualchi1)
-    print(stats.distributions.chi2.cdf(manualchi, cutoff5 - 1))
-    # print(scipy.stats.chisquare(yvals[:cutoff5], powerlaw(y[1][:cutoff5], *popt)))
+    manualchifixed = np.sum((cluster_yvals[:cutoff5] - powerfixed(cluster_hist_data[1][:cutoff5], *topt)) ** 2 / powerfixed(
+        cluster_hist_data[1][:cutoff5], *topt))
 
-    print(topt)
+    print(f'{shape} Fitted chi-squared per DoF = {manualchi/cutoff5}')
+    print(f'{shape} Fixed chi-squared per DoF = {manualchifixed/cutoff5}')
+
     plt.plot(cluster_hist_data[1][:-1], powerlaw(cluster_hist_data[1][:-1], *popt),
              label=r'$kx^{-a}$' + f': $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}', color=fitcolor)
     plt.plot(cluster_hist_data[1][:-1], powerfixed(cluster_hist_data[1][:-1], *topt),
@@ -305,7 +303,7 @@ def investigation(shape, iterations, discard, animate, test):
     return
 
 
-def Gigafunction(shapes=None, iterations=3000, discard=100, animate=False, test=False):
+def Controller(shapes=None, iterations=3000, discard=100, animate=False, test=False):
     if shapes is None:
         shapes = [(50, 50), (200, 200)]
     for shape in shapes:
@@ -313,6 +311,18 @@ def Gigafunction(shapes=None, iterations=3000, discard=100, animate=False, test=
     if animate:
         visual(shape=(100, 100))
 
+
+def critical_image():
+    grid = np.zeros((200, 200))
+    for x in range(0, 500):
+        grid = timestep(grid, shape=(200, 200))
+    colour_list = colors.ListedColormap(['Black', 'Green', 'Red'])
+    image = plt.imshow(grid, cmap=colour_list)
+    plt.title('(200, 200) forest after 500 iterations')
+    plt.tight_layout()
+    plt.axis('off')
+    plt.savefig('figures/criticalstate.png', dpi=240)
+    plt.show()
 
 directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]  # Used to index neighboring cells in the forest
 growth_probability = 0.01
@@ -325,6 +335,7 @@ time_sample_iterations = 10  # Used for the estimated completion time
 # testing_Kopelman()
 # investigating_clusters(200)
 # investigation((50, 50), 500, 100, False, False)
-Gigafunction(shapes=[(50, 50)], iterations=10000, animate=False, discard=9000)
+#Controller(shapes=[(50, 50), (200, 200)], iterations=200, animate=False, discard=100)
 # visual((100, 100))
 # perimeter_test()
+critical_image()
