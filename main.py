@@ -1,13 +1,18 @@
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.optimize
 from matplotlib import animation
 from matplotlib import colors
 import matplotlib
 import scipy.optimize as optimize
-import scipy.stats as stats
+from scipy.ndimage import center_of_mass
 import time
 import os
+
+# Extra modules imported are time, os and datetime
+# Datetime and time as used to give the estimated completion time
+# os is used to ensure the figures folder is present and creates it if that is not the case
 
 # check if figures folder exists
 if not os.path.isdir("figures"):
@@ -41,6 +46,23 @@ def timestep(forest, shape):
             except IndexError:
                 pass
     return new_forest
+
+
+def critical_image():
+    """
+    Creates an image of a 200, 200 forest in the critical state
+    :return: Nothing
+    """
+    grid = np.zeros((200, 200))
+    for x in range(0, 500):
+        grid = timestep(grid, shape=(200, 200))
+    colour_list = colors.ListedColormap(['Black', 'Green', 'Red'])
+    image = plt.imshow(grid, cmap=colour_list)
+    plt.title('(200, 200) forest after 500 iterations')
+    plt.tight_layout()
+    plt.axis('off')
+    plt.savefig('figures/criticalstate.png', dpi=240)
+    plt.show()
 
 
 def visual(shape):
@@ -130,7 +152,7 @@ def perimeter(labelled_grid, target, shape):
     Returns the size of the cluster with number target
     :param shape: shape of forest
     :param labelled_grid: Grid resulting from Kopelman
-    :param target: Number of cluster to find circumference of
+    :param target: Label of cluster to find circumference of
     :return:
     """
     coords = np.argwhere(labelled_grid == target)
@@ -170,6 +192,75 @@ def perimeter_test():
     plt.show()
 
 
+def calculate_radius(labelled_grid, target):
+    """
+    The radius is the square root of the mean quadratic distance of each cluster element from the centre of mass of
+    the cluster :param shape: shape of forest :param labelled_grid: Grid resulting from Kopelman :param target: Label
+    of cluster to find radius of :return:
+    """
+    radius = 0
+    running_total = 0
+    coords = np.argwhere(labelled_grid == target)
+    cluster_in_grid = np.where(labelled_grid == target, 1, 0)
+    centre_of_mass = center_of_mass(cluster_in_grid)
+    for coord in coords:
+        running_total += ((centre_of_mass[0] - coord[0]) ** 2 + (centre_of_mass[1] - coord[1]) ** 2)
+    radius = np.sqrt(running_total / len(coords))
+    return radius, centre_of_mass
+
+
+def radius_test():
+    perimeter_test_grid = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                    [0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+                                    [0, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+                                    [0, 0, 1, 1, 0, 0, 1, 1, 0, 0],
+                                    [0, 0, 1, 1, 0, 0, 1, 1, 0, 0],
+                                    [0, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+                                    [0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+                                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+    radius, centreofmass = calculate_radius(perimeter_test_grid, 1)
+    plt.subplot(1, 2, 1)  # Output in subplot to match font size etc. of other plots in report
+    plt.title(f'Cluster radius : {radius:.2f}')
+    plt.scatter(centreofmass[1], centreofmass[0], color='lightpink')
+    plt.Circle(centreofmass, radius, color='lightpink', alpha=0.6)
+    angle = np.linspace(0, 2 * np.pi, 150)
+    x = radius * np.cos(angle) + centreofmass[1]
+    y = radius * np.sin(angle) + centreofmass[0]
+    plt.plot(x, y, color='lightpink')
+    plt.axis('off')
+    image1 = plt.imshow(perimeter_test_grid, cmap='seismic')
+    for (j, i), label in np.ndenumerate(perimeter_test_grid):
+        plt.text(i, j, label, ha='center', va='center', color='white')
+    perimeter_test_grid = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                                    [0, 0, 0, 0, 1, 1, 1, 1, 0, 0],
+                                    [0, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+                                    [0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
+                                    [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+    radius, centreofmass = calculate_radius(perimeter_test_grid, 1)
+    plt.subplot(1, 2, 2)  # Output in subplot to match font size etc. of other plots in report
+    plt.title(f'Cluster radius : {radius:.2f}')
+    plt.scatter(centreofmass[1], centreofmass[0], color='lightpink')
+    plt.Circle(centreofmass, radius, color='lightpink', alpha=0.6)
+    angle = np.linspace(0, 2 * np.pi, 150)
+    x = radius * np.cos(angle) + centreofmass[1]
+    y = radius * np.sin(angle) + centreofmass[0]
+    plt.plot(x, y, color='lightpink')
+    plt.axis('off')
+    image1 = plt.imshow(perimeter_test_grid, cmap='seismic')
+    for (j, i), label in np.ndenumerate(perimeter_test_grid):
+        plt.text(i, j, label, ha='center', va='center', color='white')
+    plt.tight_layout()
+    plt.savefig('figures/radius_test', dpi=240)
+    plt.show()
+
+
 def powerlaw(x, k, a):
     return k * x ** -a
 
@@ -178,7 +269,7 @@ def powerfixed(x, k):
     return k * x ** (-2)
 
 
-def investigation(shape, iterations, discard, animate, test):
+def investigation(shape, iterations, discard, animate, test, findradius):
     if test:
         testing_Kopelman()
     grid = np.zeros(shape)
@@ -212,7 +303,8 @@ def investigation(shape, iterations, discard, animate, test):
                 if y in labelled_grid:  # Avoid appending 0 values for missing labels
                     perimeters.append(perimeter(labelled_grid, y, shape))
                     clusters.append(int(np.count_nonzero(labelled_grid == y)))
-                    # radii.append(calculateradius(labelled_grid, y, shape))
+                    if findradius:
+                        radii.append(calculate_radius(labelled_grid, y)[0])
     xvalues = np.arange(0, iterations)
     rhobar = np.mean(trees[discard:]) / (shape[0]) ** 2
     plt.title(f'Number of trees in the forest over {iterations} iterations ' + r'$\rho ̄$' + f'$={rhobar:.3f}$')
@@ -229,10 +321,10 @@ def investigation(shape, iterations, discard, animate, test):
     bins = np.arange(1, np.max(clusters) + 1, 1, dtype=np.float64)
     cluster_hist_data = plt.hist(clusters, bins=bins, label='Cluster size', color=datacolor)
     cluster_yvals = cluster_hist_data[0]
-    popt, pcov = optimize.curve_fit(powerlaw, xdata=cluster_hist_data[1][1:-1], ydata=cluster_yvals[1:],
-                                    absolute_sigma=True)    # omitting cluster size 1
-    topt, tcov = optimize.curve_fit(powerfixed, xdata=cluster_hist_data[1][1:-1], ydata=cluster_yvals[1:],
-                                    absolute_sigma=True)    # fixed value of a=2
+    popt, pcov = optimize.curve_fit(powerlaw, xdata=cluster_hist_data[1][:-1], ydata=cluster_yvals[:],
+                                    absolute_sigma=True)
+    topt, tcov = optimize.curve_fit(powerfixed, xdata=cluster_hist_data[1][:-1], ydata=cluster_yvals[:],
+                                    absolute_sigma=True)  # fixed value of a=2
     cutoff5 = None
     for x in cluster_hist_data[1][:-1]:
         if powerlaw(x, *popt) < 5:
@@ -243,11 +335,12 @@ def investigation(shape, iterations, discard, animate, test):
 
     manualchi = np.sum((cluster_yvals[:cutoff5] - powerlaw(cluster_hist_data[1][:cutoff5], *popt)) ** 2 / powerlaw(
         cluster_hist_data[1][:cutoff5], *popt))
-    manualchifixed = np.sum((cluster_yvals[:cutoff5] - powerfixed(cluster_hist_data[1][:cutoff5], *topt)) ** 2 / powerfixed(
-        cluster_hist_data[1][:cutoff5], *topt))
+    manualchifixed = np.sum(
+        (cluster_yvals[:cutoff5] - powerfixed(cluster_hist_data[1][:cutoff5], *topt)) ** 2 / powerfixed(
+            cluster_hist_data[1][:cutoff5], *topt))
 
-    print(f'{shape} Fitted chi-squared per DoF = {manualchi/cutoff5}')
-    print(f'{shape} Fixed chi-squared per DoF = {manualchifixed/cutoff5}')
+    print(f'{shape} Fitted chi-squared per DoF for area = {manualchi / cutoff5}')
+    print(f'{shape} Fixed chi-squared per DoF for area= {manualchifixed / cutoff5}')
 
     plt.plot(cluster_hist_data[1][:-1], powerlaw(cluster_hist_data[1][:-1], *popt),
              label=r'$kx^{-a}$' + f': $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}', color=fitcolor)
@@ -262,11 +355,13 @@ def investigation(shape, iterations, discard, animate, test):
     plt.show()
 
     plt.title(f'Frequency of cluster size for {shape} forest, {iterations} iterations')
-    plt.errorbar(cluster_hist_data[1][:-1], cluster_yvals, fmt='.', label='Cluster Size Frequency', color=datacolor)
-    plt.plot(bins, powerlaw(bins, *popt), label=r'$kx^{-a}$' + f': $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}',
-             color=fitcolor)
+    plt.errorbar(cluster_hist_data[1][:-1], cluster_yvals, fmt='.', label='Cluster Size Frequency', color=datacolor,
+                 zorder=1)
     plt.plot(cluster_hist_data[1][:-1], powerfixed(cluster_hist_data[1][:-1], *topt),
-             label=r'$kx^{-2}$' + f': $k = ${topt[0]:.2f}', color='lightpink')
+             label=r'$kx^{-2}$' + f': $k = ${topt[0]:.2f}', color='lightpink', zorder=2)
+    plt.plot(bins, powerlaw(bins, *popt), label=r'$kx^{-a}$' + f': $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}',
+             color=fitcolor, zorder=2)
+
     plt.ylabel('Frequency')
     plt.xlabel('Cluster size')
     plt.loglog()
@@ -291,38 +386,46 @@ def investigation(shape, iterations, discard, animate, test):
     plt.show()
 
     plt.title(f'Frequency of perimeter fitted with a power law for {shape}')
-    plt.errorbar(perimeter_hist_data[1][:-1], perimeter_yvals, fmt='.', label='Cluster Size Frequency', color=datacolor)
+    plt.errorbar(perimeter_hist_data[1][:-1], perimeter_yvals, fmt='.', label='Cluster Size Frequency', color=datacolor,
+                 zorder=1)
     plt.plot(bincirc, powerlaw(bincirc, *popt), label=r'$kx^{-a}$' + f': $k = ${popt[0]:.2f}, $a = ${popt[1]:.2f}',
-             color=fitcolor)
+             color=fitcolor, zorder=2)
     plt.ylabel('Frequency')
     plt.xlabel('Perimeter')
     plt.loglog()
     plt.legend()
     plt.savefig(f'figures/{shape}logcirc.png', dpi=240)
     plt.show()
-    return
+
+    if findradius:
+        radii = np.array(radii)
+        clusters = np.array(clusters)
+
+        plt.errorbar(clusters, radii, fmt='.', color=datacolor, label='Cluster Radius', zorder=1)
+
+        popt, pcov = scipy.optimize.curve_fit(powerlaw, xdata=clusters, ydata=radii, absolute_sigma=True)
+
+        plt.plot(clusters, powerlaw(clusters, *popt),
+                 label=r'$kx^{a}$' + f': $k = ${popt[0]:.2f}, $a = ${-popt[1]:.2f}',
+                 color=fitcolor, zorder=2)
+
+        plt.title(f'Cluster size vs radius for {shape}')
+        plt.ylabel('Radius')
+        plt.xlabel('Cluster Size')
+        plt.loglog()
+        plt.legend()
+        plt.savefig(f'figures/{shape}radius.png', dpi=240)
+        plt.show()
 
 
-def Controller(shapes=None, iterations=3000, discard=100, animate=False, test=False):
+def Controller(shapes=None, iterations=3000, discard=100, animate=False, test=False, findradius=False):
     if shapes is None:
         shapes = [(50, 50), (200, 200)]
     for shape in shapes:
-        investigation(shape, iterations, discard, animate, test)
+        investigation(shape, iterations, discard, animate, test, findradius)
     if animate:
         visual(shape=(100, 100))
 
-
-def critical_image():
-    grid = np.zeros((200, 200))
-    for x in range(0, 500):
-        grid = timestep(grid, shape=(200, 200))
-    colour_list = colors.ListedColormap(['Black', 'Green', 'Red'])
-    image = plt.imshow(grid, cmap=colour_list)
-    plt.title('(200, 200) forest after 500 iterations')
-    plt.tight_layout()
-    plt.axis('off')
-    plt.savefig('figures/criticalstate.png', dpi=240)
-    plt.show()
 
 directions = [(0, -1), (-1, 0), (1, 0), (0, 1)]  # Used to index neighboring cells in the forest
 growth_probability = 0.01
@@ -330,12 +433,10 @@ ignition_probability = growth_probability * 1 / 70
 empty, tree, fire = 0, 1, 2  # Assigning values to represent empty, tree and fire
 time_sample_iterations = 10  # Used for the estimated completion time
 
-# visual()
-# study_numbers()
+Controller(shapes=[(50, 50), (200, 200)], iterations=3000, animate=False, discard=200, findradius=True)  # radius
+# is optional as it greatly extends the computation time
+
 # testing_Kopelman()
-# investigating_clusters(200)
-# investigation((50, 50), 500, 100, False, False)
-#Controller(shapes=[(50, 50), (200, 200)], iterations=200, animate=False, discard=100)
-# visual((100, 100))
 # perimeter_test()
-critical_image()
+# #radius_test()
+# critical_image()
